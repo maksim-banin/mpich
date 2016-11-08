@@ -14,7 +14,7 @@
 #include "mpidu_datatype.h"
 #include "mpidch4.h"
 
-MPL_STATIC_INLINE_PREFIX void MPID_Request_create_hook(MPIR_Request * req)
+static inline void MPID_Request_create_hook(MPIR_Request * req)
 {
     MPIDI_CH4U_REQUEST(req, req) = NULL;
 #ifdef MPIDI_BUILD_CH4_SHM
@@ -22,7 +22,7 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_create_hook(MPIR_Request * req)
 #endif
 }
 
-MPL_STATIC_INLINE_PREFIX void MPID_Request_free_hook(MPIR_Request * req)
+static inline void MPID_Request_free_hook(MPIR_Request * req)
 {
     if (req->kind == MPIR_REQUEST_KIND__PREQUEST_RECV &&
         NULL != MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(req))
@@ -31,7 +31,7 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_free_hook(MPIR_Request * req)
     return;
 }
 
-MPL_STATIC_INLINE_PREFIX void MPID_Request_destroy_hook(MPIR_Request * req)
+static inline void MPID_Request_destroy_hook(MPIR_Request * req)
 {
     return;
 }

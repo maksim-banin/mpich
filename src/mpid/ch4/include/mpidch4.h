@@ -17,7 +17,7 @@
  * netmod.
  */
 #define MPIDI_CH4I_API(rc,fcnname,...)            \
-  MPL_STATIC_INLINE_PREFIX rc MPIDI_##fcnname(__VA_ARGS__)
+  static inline rc MPIDI_##fcnname(__VA_ARGS__)
 
 MPIDI_CH4I_API(int, Init, int *, char ***, int, int *, int *, int *);
 MPIDI_CH4I_API(int, InitCompleted, void);
@@ -235,7 +235,7 @@ MPIDI_CH4I_API(int, Iscatterv, const void *, const int *, const int *, MPI_Datat
  * similar to the functions above. Other CH4-level functions should call this
  * function to query locality. This function will determine whether to call the
  * netmod or CH4U locality functions. */
-MPL_STATIC_INLINE_PREFIX int MPIDI_CH4_rank_is_local(int rank, MPIR_Comm * comm);
+static inline int MPIDI_CH4_rank_is_local(int rank, MPIR_Comm * comm);
 
 /* Include netmod prototypes */
 #include <netmod.h>

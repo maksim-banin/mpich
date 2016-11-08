@@ -14,54 +14,50 @@
 #include "ch4_impl.h"
 #include "ch4i_comm.h"
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_AS_enabled(MPIR_Comm * comm)
+static inline int MPIDI_Comm_AS_enabled(MPIR_Comm * comm)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_reenable_anysource(MPIR_Comm * comm,
-                                                           MPIR_Group ** failed_group_ptr)
+static inline int MPIDI_Comm_reenable_anysource(MPIR_Comm * comm, MPIR_Group ** failed_group_ptr)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_remote_group_failed(MPIR_Comm * comm,
-                                                            MPIR_Group ** failed_group_ptr)
+static inline int MPIDI_Comm_remote_group_failed(MPIR_Comm * comm, MPIR_Group ** failed_group_ptr)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_group_failed(MPIR_Comm * comm_ptr,
-                                                     MPIR_Group ** failed_group_ptr)
+static inline int MPIDI_Comm_group_failed(MPIR_Comm * comm_ptr, MPIR_Group ** failed_group_ptr)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_failure_ack(MPIR_Comm * comm_ptr)
+static inline int MPIDI_Comm_failure_ack(MPIR_Comm * comm_ptr)
 {
     MPIR_Assert(0);
     return 0;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_failure_get_acked(MPIR_Comm * comm_ptr,
-                                                          MPIR_Group ** failed_group_ptr)
+static inline int MPIDI_Comm_failure_get_acked(MPIR_Comm * comm_ptr, MPIR_Group ** failed_group_ptr)
 {
     MPIR_Assert(0);
     return 0;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_revoke(MPIR_Comm * comm_ptr, int is_remote)
+static inline int MPIDI_Comm_revoke(MPIR_Comm * comm_ptr, int is_remote)
 {
     MPIR_Assert(0);
     return 0;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_get_all_failed_procs(MPIR_Comm * comm_ptr,
-                                                             MPIR_Group ** failed_group, int tag)
+static inline int MPIDI_Comm_get_all_failed_procs(MPIR_Comm * comm_ptr,
+                                                  MPIR_Group ** failed_group, int tag)
 {
     MPIR_Assert(0);
     return 0;
@@ -71,10 +67,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_get_all_failed_procs(MPIR_Comm * comm_pt
 #define FUNCNAME MPIDI_Comm_split_type
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_split_type(MPIR_Comm * comm_ptr,
-                                                   int split_type,
-                                                   int key, MPIR_Info * info_ptr,
-                                                   MPIR_Comm ** newcomm_ptr)
+static inline int MPIDI_Comm_split_type(MPIR_Comm * comm_ptr,
+                                        int split_type,
+                                        int key, MPIR_Info * info_ptr, MPIR_Comm ** newcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     int idx;
@@ -99,7 +94,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_split_type(MPIR_Comm * comm_ptr,
 #define FUNCNAME MPIDI_Comm_create_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_create_hook(MPIR_Comm * comm)
+static inline int MPIDI_Comm_create_hook(MPIR_Comm * comm)
 {
     int mpi_errno;
     int i, *uniq_avtids;
@@ -171,7 +166,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_create_hook(MPIR_Comm * comm)
 #define FUNCNAME MPIDI_Comm_free_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_free_hook(MPIR_Comm * comm)
+static inline int MPIDI_Comm_free_hook(MPIR_Comm * comm)
 {
     int mpi_errno;
     int i, *uniq_avtids;
@@ -253,15 +248,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_free_hook(MPIR_Comm * comm)
 #define FUNCNAME MPIDI_Intercomm_upid_lupid_bcast_intra
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Intercomm_map_bcast_intra(MPIR_Comm * local_comm,
-                                                             int local_leader,
-                                                             int *remote_size,
-                                                             int *is_low_group,
-                                                             int pure_intracomm,
-                                                             size_t * remote_upid_size,
-                                                             char *remote_upids,
-                                                             int **remote_lupids,
-                                                             MPID_Node_id_t * remote_node_ids)
+static inline int MPIDI_Intercomm_map_bcast_intra(MPIR_Comm * local_comm,
+                                                  int local_leader,
+                                                  int *remote_size,
+                                                  int *is_low_group,
+                                                  int pure_intracomm,
+                                                  size_t * remote_upid_size,
+                                                  char *remote_upids,
+                                                  int **remote_lupids,
+                                                  MPID_Node_id_t * remote_node_ids)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
@@ -359,12 +354,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Intercomm_map_bcast_intra(MPIR_Comm * local_c
 #define FUNCNAME MPIDI_Intercomm_exchange_map
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Intercomm_exchange_map(MPIR_Comm * local_comm,
-                                                          int local_leader,
-                                                          MPIR_Comm * peer_comm,
-                                                          int remote_leader,
-                                                          int *remote_size,
-                                                          int **remote_lupids, int *is_low_group)
+static inline int MPIDI_Intercomm_exchange_map(MPIR_Comm * local_comm,
+                                               int local_leader,
+                                               MPIR_Comm * peer_comm,
+                                               int remote_leader,
+                                               int *remote_size,
+                                               int **remote_lupids, int *is_low_group)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;

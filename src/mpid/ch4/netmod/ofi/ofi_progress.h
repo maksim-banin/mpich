@@ -15,7 +15,7 @@
 #include "ofi_events.h"
 #include "ofi_am_events.h"
 
-MPL_STATIC_INLINE_PREFIX
+static inline
     int MPIDI_OFI_progress_generic(void *netmod_context, int blocking, int do_am, int do_tagged)
 {
     int mpi_errno;

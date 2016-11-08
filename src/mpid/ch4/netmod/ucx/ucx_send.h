@@ -16,12 +16,12 @@
 #define FUNCNAME ucx_send_continous
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int ucx_send_continous(const void *buf,
-                                                size_t data_sz,
-                                                int rank,
-                                                int tag,
-                                                MPIR_Comm * comm, int context_offset,
-                                                MPIR_Request ** request, int have_request)
+static inline int ucx_send_continous(const void *buf,
+                                     size_t data_sz,
+                                     int rank,
+                                     int tag,
+                                     MPIR_Comm * comm, int context_offset,
+                                     MPIR_Request ** request, int have_request)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req;
@@ -64,12 +64,12 @@ MPL_STATIC_INLINE_PREFIX int ucx_send_continous(const void *buf,
 
 }
 
-MPL_STATIC_INLINE_PREFIX int ucx_sync_send_continous(const void *buf,
-                                                     size_t data_sz,
-                                                     int rank,
-                                                     int tag,
-                                                     MPIR_Comm * comm, int context_offset,
-                                                     MPIR_Request ** request, int have_request)
+static inline int ucx_sync_send_continous(const void *buf,
+                                          size_t data_sz,
+                                          int rank,
+                                          int tag,
+                                          MPIR_Comm * comm, int context_offset,
+                                          MPIR_Request ** request, int have_request)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req;
@@ -113,13 +113,13 @@ MPL_STATIC_INLINE_PREFIX int ucx_sync_send_continous(const void *buf,
 
 }
 
-MPL_STATIC_INLINE_PREFIX int ucx_sync_send_non_continous(const void *buf,
-                                                         size_t count,
-                                                         int rank,
-                                                         int tag,
-                                                         MPIR_Comm * comm, int context_offset,
-                                                         MPIR_Request ** request, int have_request,
-                                                         MPIR_Datatype * datatype)
+static inline int ucx_sync_send_non_continous(const void *buf,
+                                              size_t count,
+                                              int rank,
+                                              int tag,
+                                              MPIR_Comm * comm, int context_offset,
+                                              MPIR_Request ** request, int have_request,
+                                              MPIR_Datatype * datatype)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req;
@@ -172,13 +172,13 @@ MPL_STATIC_INLINE_PREFIX int ucx_sync_send_non_continous(const void *buf,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-MPL_STATIC_INLINE_PREFIX int ucx_send_non_continous(const void *buf,
-                                                    size_t count,
-                                                    int rank,
-                                                    int tag,
-                                                    MPIR_Comm * comm, int context_offset,
-                                                    MPIR_Request ** request, int have_request,
-                                                    MPIR_Datatype * datatype)
+static inline int ucx_send_non_continous(const void *buf,
+                                         size_t count,
+                                         int rank,
+                                         int tag,
+                                         MPIR_Comm * comm, int context_offset,
+                                         MPIR_Request ** request, int have_request,
+                                         MPIR_Datatype * datatype)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req;

@@ -227,7 +227,7 @@
 
 #define WINFO(w,rank) MPIDI_CH4U_WINFO(w,rank)
 
-MPL_STATIC_INLINE_PREFIX uintptr_t MPIDI_OFI_winfo_base(MPIR_Win * w, int rank)
+static inline uintptr_t MPIDI_OFI_winfo_base(MPIR_Win * w, int rank)
 {
 #if MPIDI_OFI_ENABLE_MR_SCALABLE
     return 0;
@@ -236,7 +236,7 @@ MPL_STATIC_INLINE_PREFIX uintptr_t MPIDI_OFI_winfo_base(MPIR_Win * w, int rank)
 #endif
 }
 
-MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_winfo_mr_key(MPIR_Win * w, int rank)
+static inline uint64_t MPIDI_OFI_winfo_mr_key(MPIR_Win * w, int rank)
 {
 #if MPIDI_OFI_ENABLE_MR_SCALABLE
     return MPIDI_OFI_WIN(w).mr_key;
@@ -245,12 +245,12 @@ MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_winfo_mr_key(MPIR_Win * w, int rank)
 #endif
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_cntr_incr(MPIR_Win * win)
+static inline void MPIDI_OFI_win_cntr_incr(MPIR_Win * win)
 {
     (*MPIDI_OFI_WIN(win).issued_cntr)++;
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_cntr_incr()
+static inline void MPIDI_OFI_cntr_incr()
 {
     MPIDI_Global.rma_issued_cntr++;
 }
@@ -276,7 +276,7 @@ void MPIDI_OFI_index_allocator_destroy(void *_indexmap);
 /* Common Utility functions used by the
  * C and C++ components
  */
-MPL_STATIC_INLINE_PREFIX MPIDI_OFI_win_request_t *MPIDI_OFI_win_request_alloc_and_init(int extra)
+static inline MPIDI_OFI_win_request_t *MPIDI_OFI_win_request_alloc_and_init(int extra)
 {
     MPIDI_OFI_win_request_t *req;
     req = (MPIDI_OFI_win_request_t *) MPIR_Request_create(MPIR_REQUEST_KIND__RMA);
@@ -287,13 +287,13 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_win_request_t *MPIDI_OFI_win_request_alloc_an
     return req;
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_datatype_unmap(MPIDI_OFI_win_datatype_t * dt)
+static inline void MPIDI_OFI_win_datatype_unmap(MPIDI_OFI_win_datatype_t * dt)
 {
     if (dt && dt->map && (dt->map != &dt->__map))
         MPL_free(dt->map);
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_request_complete(MPIDI_OFI_win_request_t * req)
+static inline void MPIDI_OFI_win_request_complete(MPIDI_OFI_win_request_t * req)
 {
     int count;
     MPIR_Assert(HANDLE_GET_MPI_KIND(req->handle) == MPIR_REQUEST);
@@ -308,7 +308,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_request_complete(MPIDI_OFI_win_reque
     }
 }
 
-MPL_STATIC_INLINE_PREFIX fi_addr_t MPIDI_OFI_comm_to_phys(MPIR_Comm * comm, int rank, int ep_family)
+static inline fi_addr_t MPIDI_OFI_comm_to_phys(MPIR_Comm * comm, int rank, int ep_family)
 {
 #ifdef MPIDI_OFI_CONFIG_USE_SCALABLE_ENDPOINTS
     int ep_num = MPIDI_OFI_COMM_TO_EP(comm, rank);
@@ -320,7 +320,7 @@ MPL_STATIC_INLINE_PREFIX fi_addr_t MPIDI_OFI_comm_to_phys(MPIR_Comm * comm, int 
 #endif
 }
 
-MPL_STATIC_INLINE_PREFIX fi_addr_t MPIDI_OFI_to_phys(int rank, int ep_family)
+static inline fi_addr_t MPIDI_OFI_to_phys(int rank, int ep_family)
 {
 #ifdef MPIDI_OFI_CONFIG_USE_SCALABLE_ENDPOINTS
     int ep_num = 0;
@@ -332,14 +332,13 @@ MPL_STATIC_INLINE_PREFIX fi_addr_t MPIDI_OFI_to_phys(int rank, int ep_family)
 #endif
 }
 
-MPL_STATIC_INLINE_PREFIX bool MPIDI_OFI_is_tag_sync(uint64_t match_bits)
+static inline bool MPIDI_OFI_is_tag_sync(uint64_t match_bits)
 {
     return (0 != (MPIDI_OFI_SYNC_SEND & match_bits));
 }
 
-MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_init_sendtag(MPIR_Context_id_t contextid,
-                                                         int source, int tag, uint64_t type,
-                                                         int do_data)
+static inline uint64_t MPIDI_OFI_init_sendtag(MPIR_Context_id_t contextid,
+                                              int source, int tag, uint64_t type, int do_data)
 {
     uint64_t match_bits;
     match_bits = contextid;
@@ -355,9 +354,9 @@ MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_init_sendtag(MPIR_Context_id_t conte
 }
 
 /* receive posting */
-MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_init_recvtag(uint64_t * mask_bits,
-                                                         MPIR_Context_id_t contextid,
-                                                         int source, int tag, int do_data)
+static inline uint64_t MPIDI_OFI_init_recvtag(uint64_t * mask_bits,
+                                              MPIR_Context_id_t contextid,
+                                              int source, int tag, int do_data)
 {
     uint64_t match_bits = 0;
     *mask_bits = MPIDI_OFI_PROTOCOL_MASK;
@@ -387,17 +386,17 @@ MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_init_recvtag(uint64_t * mask_bits,
     return match_bits;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_init_get_tag(uint64_t match_bits)
+static inline int MPIDI_OFI_init_get_tag(uint64_t match_bits)
 {
     return ((int) (match_bits & MPIDI_OFI_TAG_MASK));
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_init_get_source(uint64_t match_bits)
+static inline int MPIDI_OFI_init_get_source(uint64_t match_bits)
 {
     return ((int) ((match_bits & MPIDI_OFI_SOURCE_MASK) >> MPIDI_OFI_TAG_SHIFT));
 }
 
-MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDI_OFI_context_to_request(void *context)
+static inline MPIR_Request *MPIDI_OFI_context_to_request(void *context)
 {
     char *base = (char *) context;
     return (MPIR_Request *) container_of(base, MPIR_Request, dev.ch4.netmod);
@@ -407,10 +406,10 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDI_OFI_context_to_request(void *contex
 #define FUNCNAME MPIDI_OFI_send_handler
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_handler(struct fid_ep *ep, const void *buf, size_t len,
-                                                    void *desc, uint64_t dest, fi_addr_t dest_addr,
-                                                    uint64_t tag, void *context, int is_inject,
-                                                    int do_data, int do_lock)
+static inline int MPIDI_OFI_send_handler(struct fid_ep *ep, const void *buf, size_t len,
+                                         void *desc, uint64_t dest, fi_addr_t dest_addr,
+                                         uint64_t tag, void *context, int is_inject,
+                                         int do_data, int do_lock)
 {
     int mpi_errno = MPI_SUCCESS;
 

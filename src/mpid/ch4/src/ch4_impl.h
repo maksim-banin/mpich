@@ -81,7 +81,7 @@ static inline MPIR_Context_id_t MPIDI_CH4U_win_to_context(const MPIR_Win * win)
 #define FUNCNAME MPIDI_CH4U_request_complete
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX void MPIDI_CH4U_request_complete(MPIR_Request * req)
+static inline void MPIDI_CH4U_request_complete(MPIR_Request * req)
 {
     int incomplete;
     MPIR_cc_decr(req->cc_ptr, &incomplete);

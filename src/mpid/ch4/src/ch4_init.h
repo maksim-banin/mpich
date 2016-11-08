@@ -146,9 +146,9 @@ static inline int MPIDI_choose_shm(void)
 #define FUNCNAME MPIDI_Init
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Init(int *argc,
-                                        char ***argv,
-                                        int requested, int *provided, int *has_args, int *has_env)
+static inline int MPIDI_Init(int *argc,
+                             char ***argv,
+                             int requested, int *provided, int *has_args, int *has_env)
 {
     int pmi_errno, mpi_errno = MPI_SUCCESS, rank, has_parent, size, appnum, thr_err;
     void *netmod_contexts;
@@ -328,7 +328,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Init(int *argc,
 #define FUNCNAME MPIDI_InitCompleted
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_InitCompleted(void)
+static inline int MPIDI_InitCompleted(void)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_INITCOMPLETED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_INITCOMPLETED);
@@ -341,7 +341,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_InitCompleted(void)
 #define FUNCNAME MPIDI_Finalize
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Finalize(void)
+static inline int MPIDI_Finalize(void)
 {
     int mpi_errno, thr_err;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_FINALIZE);
@@ -382,7 +382,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Finalize(void)
 #define FUNCNAME MPIDI_Get_universe_size
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Get_universe_size(int *universe_size)
+static inline int MPIDI_Get_universe_size(int *universe_size)
 {
     int mpi_errno = MPI_SUCCESS;
     int pmi_errno = PMI_SUCCESS;
@@ -410,7 +410,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Get_universe_size(int *universe_size)
 #define FUNCNAME MPIDI_Get_processor_name
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Get_processor_name(char *name, int namelen, int *resultlen)
+static inline int MPIDI_Get_processor_name(char *name, int namelen, int *resultlen)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_GET_PROCESSOR_NAME);
@@ -453,8 +453,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Get_processor_name(char *name, int namelen, i
 #define FUNCNAME MPIDI_Abort
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Abort(MPIR_Comm * comm,
-                                         int mpi_errno, int exit_code, const char *error_msg)
+static inline int MPIDI_Abort(MPIR_Comm * comm, int mpi_errno, int exit_code, const char *error_msg)
 {
     char sys_str[MPI_MAX_ERROR_STRING + 5] = "";
     char comm_str[MPI_MAX_ERROR_STRING] = "";
@@ -497,7 +496,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Abort(MPIR_Comm * comm,
 #define FUNCNAME MPIDI_Alloc_mem
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX void *MPIDI_Alloc_mem(size_t size, MPIR_Info * info_ptr)
+static inline void *MPIDI_Alloc_mem(size_t size, MPIR_Info * info_ptr)
 {
     void *p;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_ALLOC_MEM);
@@ -513,7 +512,7 @@ MPL_STATIC_INLINE_PREFIX void *MPIDI_Alloc_mem(size_t size, MPIR_Info * info_ptr
 #define FUNCNAME MPIDI_Free_mem
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Free_mem(void *ptr)
+static inline int MPIDI_Free_mem(void *ptr)
 {
     int mpi_errno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_FREE_MEM);
@@ -535,8 +534,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Free_mem(void *ptr)
 #define FUNCNAME MPIDI_Comm_get_lpid
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_get_lpid(MPIR_Comm * comm_ptr,
-                                                 int idx, int *lpid_ptr, MPL_bool is_remote)
+static inline int MPIDI_Comm_get_lpid(MPIR_Comm * comm_ptr,
+                                      int idx, int *lpid_ptr, MPL_bool is_remote)
 {
     int mpi_errno = MPI_SUCCESS;
     int avtid = 0, lpid = 0;
@@ -561,7 +560,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Comm_get_lpid(MPIR_Comm * comm_ptr,
 #define FUNCNAME MPIDI_Get_node_id
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Get_node_id(MPIR_Comm * comm, int rank, MPID_Node_id_t * id_p)
+static inline int MPIDI_Get_node_id(MPIR_Comm * comm, int rank, MPID_Node_id_t * id_p)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_GET_NODE_ID);
@@ -577,7 +576,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Get_node_id(MPIR_Comm * comm, int rank, MPID_
 #define FUNCNAME MPIDI_Get_max_node_id
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Get_max_node_id(MPIR_Comm * comm, MPID_Node_id_t * max_id_p)
+static inline int MPIDI_Get_max_node_id(MPIR_Comm * comm, MPID_Node_id_t * max_id_p)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_GET_MAX_NODE_ID);
@@ -593,11 +592,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Get_max_node_id(MPIR_Comm * comm, MPID_Node_i
 #define FUNCNAME MPIDI_upids_to_lupids
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_upids_to_lupids(int size,
-                                                   size_t * remote_upid_size,
-                                                   char *remote_upids,
-                                                   int **remote_lupids,
-                                                   MPID_Node_id_t * remote_node_ids)
+static inline int MPIDI_upids_to_lupids(int size,
+                                        size_t * remote_upid_size,
+                                        char *remote_upids,
+                                        int **remote_lupids, MPID_Node_id_t * remote_node_ids)
 {
     int mpi_errno = MPI_SUCCESS, i;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_UPIDS_TO_LUPIDS);
@@ -644,8 +642,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_upids_to_lupids(int size,
 #define FUNCNAME MPIDI_Create_intercomm_from_lpids
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr,
-                                                               int size, const int lpids[])
+static inline int MPIDI_Create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr,
+                                                    int size, const int lpids[])
 {
     int mpi_errno = MPI_SUCCESS, i;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CREATE_INTERCOMM_FROM_LPIDS);
@@ -683,7 +681,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Create_intercomm_from_lpids(MPIR_Comm * newco
 #define FUNCNAME MPIDI_Aint_add
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_Aint_add(MPI_Aint base, MPI_Aint disp)
+static inline MPI_Aint MPIDI_Aint_add(MPI_Aint base, MPI_Aint disp)
 {
     MPI_Aint result;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_AINT_ADD);
@@ -697,7 +695,7 @@ MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_Aint_add(MPI_Aint base, MPI_Aint disp)
 #define FUNCNAME MPIDI_Aint_diff
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2)
+static inline MPI_Aint MPIDI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2)
 {
     MPI_Aint result;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_AINT_DIFF);
@@ -713,7 +711,7 @@ MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2
 #define FUNCNAME MPIDI_Type_create_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Type_create_hook(MPIR_Datatype * type)
+static inline int MPIDI_Type_create_hook(MPIR_Datatype * type)
 {
     int mpi_errno;
 
@@ -743,7 +741,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Type_create_hook(MPIR_Datatype * type)
 #define FUNCNAME MPIDI_Type_free_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Type_free_hook(MPIR_Datatype * type)
+static inline int MPIDI_Type_free_hook(MPIR_Datatype * type)
 {
     int mpi_errno;
 
@@ -773,7 +771,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Type_free_hook(MPIR_Datatype * type)
 #define FUNCNAME MPIDI_Op_create_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Op_create_hook(MPIR_Op * op)
+static inline int MPIDI_Op_create_hook(MPIR_Op * op)
 {
     int mpi_errno;
 
@@ -803,7 +801,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Op_create_hook(MPIR_Op * op)
 #define FUNCNAME MPIDI_Op_free_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_Op_free_hook(MPIR_Op * op)
+static inline int MPIDI_Op_free_hook(MPIR_Op * op)
 {
     int mpi_errno;
 
