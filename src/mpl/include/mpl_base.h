@@ -53,7 +53,6 @@
 #endif /* ATTRIBUTE */
 
 #define MPL_STATIC_INLINE_PREFIX ATTRIBUTE((always_inline)) static inline
-#define MPL_STATIC_INLINE_SUFFIX ATTRIBUTE((always_inline))
 
 /* These likely/unlikely macros provide static branch prediction hints to the
  * compiler, if such hints are available.  Simply wrap the relevant expression in
