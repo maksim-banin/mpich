@@ -517,6 +517,418 @@ static HYD_status initiate_process_launch(struct mpiexec_pg *pg)
     goto fn_exit;
 }
 
+struct HYD_pmcd_token {
+    char *key;
+    char *val;
+};
+
+static HYD_status HYD_pmcd_pmi_args_to_tokens(char *args[], struct HYD_pmcd_token **tokens, int *count)
+{
+    int i, j;
+    char *arg;
+    HYD_status status = HYD_SUCCESS;
+
+    for (i = 0; args[i]; i++);
+    *count = i;
+
+    HYD_PRINT(stdout, "on the recievin side count = %d\n", *count);
+    HYD_MALLOC(*tokens, struct HYD_pmcd_token *, *count * sizeof(struct HYD_pmcd_token), status);
+
+    for (i = 0; args[i]; i++) {
+        arg = MPL_strdup(args[i]);
+        HYD_PRINT(stdout, "args[%d] = %s\n", i, args[i]);
+        (*tokens)[i].key = arg;
+        for (j = 0; arg[j] && arg[j] != '='; j++);
+        if (!arg[j]) {
+            (*tokens)[i].val = NULL;
+        }
+        else {
+            arg[j] = 0;
+            (*tokens)[i].val = &arg[++j];
+        }
+    }
+
+ fn_exit:
+    return status;
+
+ fn_fail:
+    goto fn_exit;
+}
+
+struct HYD_pmcd_token_segment {
+    int start_idx;
+    int token_count;
+};
+
+static HYD_status cmd_response(int fd, const char *str)
+{
+    int len = strlen(str) + 1;  /* include the end of string */
+    int sent, closed;
+    HYD_status status = HYD_SUCCESS;
+
+    HYD_FUNC_ENTER();
+
+    status = HYD_sock_write(fd, &len, sizeof(int), &sent, &closed, HYD_SOCK_COMM_TYPE__BLOCKING);
+    HYD_ERR_POP(status, "error sending publish info\n");
+    HYD_ASSERT(!closed, status);
+
+    if (len) {
+        status = HYD_sock_write(fd, str, len, &sent, &closed, HYD_SOCK_COMM_TYPE__BLOCKING);
+        HYD_ERR_POP(status, "error sending publish info\n");
+        HYD_ASSERT(!closed, status);
+    }
+
+ fn_exit:
+    HYD_FUNC_EXIT();
+    return status;
+
+ fn_fail:
+    goto fn_exit;
+}
+
+
+char *HYD_pmcd_pmi_find_token_keyval(struct HYD_pmcd_token *tokens, int count, const char *key)
+{
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (!strcmp(tokens[i].key, key))
+            return tokens[i].val;
+    }
+
+    return NULL;
+}
+
+
+static void segment_tokens(struct HYD_pmcd_token *tokens, int token_count,
+                           struct HYD_pmcd_token_segment *segment_list, int *num_segments)
+{
+    int i, j;
+
+    j = 0;
+    segment_list[j].start_idx = 0;
+    segment_list[j].token_count = 0;
+    for (i = 0; i < token_count; i++) {
+        if (!strcmp(tokens[i].key, "endcmd") && (i < token_count - 1)) {
+            j++;
+            segment_list[j].start_idx = i + 1;
+            segment_list[j].token_count = 0;
+        }
+        else {
+            segment_list[j].token_count++;
+        }
+    }
+    *num_segments = j + 1;
+}
+
+static HYD_status fn_spawn(int fd, int pid/*=0*/, char *mcmd_args[], int mcmd_num_args)
+{
+    struct mpiexec_pg *pg, *tmp;
+    struct HYD_pmcd_pmi_pg_scratch *pg_scratch;
+    struct HYD_proxy *proxy;
+    struct HYD_pmcd_token *tokens;
+    struct HYD_exec *exec_list = NULL, *exec;
+    struct HYD_env *env;
+    struct HYD_node *node;
+
+    HYD_spawn(NULL, NULL, NULL, NULL, NULL, NULL, -1); // and so we didn't have to break anything
+    char key[PMI_MAXKEYLEN], *val;
+    int nprocs, preput_num, info_num, ret;
+    char *execname, *path = NULL;
+
+    struct HYD_pmcd_token_segment *segment_list = NULL;
+
+    int token_count, i, j, k, new_pgid = 0, total_spawns;
+    int argcnt, num_segments;
+    struct HYD_string_stash proxy_stash;
+    char *control_port;
+    struct HYD_string_stash stash;
+    HYD_status status = HYD_SUCCESS;
+
+    HYD_PRINT(stdout, "fn_spawn was called\n");
+    /* Initialize the proxy stash, so it can be freed if we jump to
+     * exit */
+    HYD_STRING_STASH_INIT(proxy_stash);
+
+    status = HYD_pmcd_pmi_args_to_tokens(mcmd_args, &tokens, &token_count);
+    HYD_ERR_POP(status, "unable to convert args to tokens\n");
+    HYD_PRINT(stdout, "broke into %d tokens\n", token_count);
+
+    /* Here's the order of things we do:
+     *
+     *   1. Break the token list into multiple segments, each segment
+     *      corresponding to a command. Each command represents
+     *      information for one executable.
+     *
+     *   2. Allocate a process group for the new set of spawned
+     *      processes
+     *
+     *   3. Get all the common keys and deal with them
+     *
+     *   4. Create an executable list based on the segments.
+     *
+     *   5. Create a proxy list using the created exeocutable list and
+     *      spawn it.
+     */
+
+    /* Break the token list into multiple segments and create an
+     * executable list based on the segments. */
+    val = HYD_pmcd_pmi_find_token_keyval(tokens, token_count, "totspawns");
+    HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                        "unable to find token: totspawns\n");
+    total_spawns = atoi(val);
+    
+    HYD_PRINT(stdout, "desired total spawns = %d\n", total_spawns);
+    // HYD_pmcd_token_segment is probably not imported
+    HYD_MALLOC(segment_list, struct HYD_pmcd_token_segment *,
+                total_spawns * sizeof(struct HYD_pmcd_token_segment), status);
+
+    segment_tokens(tokens, token_count, segment_list, &num_segments);
+
+    HYD_PRINT(stdout, "segmented tokens into %d segments\n", num_segments);
+
+    /* Allocate a new process group */
+    MPL_HASH_ITER(hh, mpiexec_pg_hash, pg, tmp) {
+        new_pgid = (new_pgid < pg->pgid) ? pg->pgid : new_pgid;
+    }
+
+    new_pgid += 1;
+    HYD_PRINT(stdout, "New group gets pgid = %d\n", new_pgid);
+    
+    status = mpiexec_alloc_pg(&pg, new_pgid); 
+
+    for (j = 0; j < total_spawns; j++) {
+        /* For each segment, we create an exec structure */
+        val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                             segment_list[j].token_count, "nprocs");
+        HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                            "unable to find token: nprocs\n");
+        nprocs = atoi(val);
+        pg->total_proc_count += nprocs;
+
+        val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                             segment_list[j].token_count, "argcnt");
+        HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                            "unable to find token: argcnt\n");
+        argcnt = atoi(val);
+
+        val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                             segment_list[j].token_count, "info_num");
+        if (val)
+            info_num = atoi(val);
+        else
+            info_num = 0;
+
+        if (exec_list == NULL) {
+            status = HYD_exec_alloc(&exec_list);
+            HYD_ERR_POP(status, "unable to allocate exec\n");
+            exec_list->proc_count = 0;
+            exec = exec_list;
+        }
+        else {
+            for (exec = exec_list; exec->next; exec = exec->next);
+            status = HYD_exec_alloc(&exec->next);
+            HYD_ERR_POP(status, "unable to allocate exec\n");
+            exec->next->proc_count = exec->proc_count + 1;
+            exec = exec->next;
+        }
+
+        /* Info keys */
+        for (i = 0; i < info_num; i++) {
+            char *info_key, *info_val;
+
+            MPL_snprintf(key, PMI_MAXKEYLEN, "info_key_%d", i);
+            val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                                 segment_list[j].token_count, key);
+            HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                                "unable to find token: %s\n", key);
+            info_key = val;
+
+            MPL_snprintf(key, PMI_MAXKEYLEN, "info_val_%d", i); 
+            val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                                 segment_list[j].token_count, key);
+            HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                                "unable to find token: %s\n", key);
+            info_val = val;
+
+            if (!strcmp(info_key, "path")) {
+                path = MPL_strdup(info_val);
+            }
+            /* else if (!strcmp(info_key, "host") || !strcmp(info_key, "hosts")) { */
+            /*     char *saveptr; */
+            /*     char *host = strtok_r(info_val, ",", &saveptr); */
+            /*     while (host) { */
+            /*         status = HYDU_process_mfile_token(host, 1, &pg->node_list); */
+            /*         HYDU_ERR_POP(status, "error creating node list\n"); */
+            /*         host = strtok_r(NULL, ",", &saveptr); */
+            /*     } */
+            /* } */
+            /* else if (!strcmp(info_key, "hostfile")) { */
+            /*     status = HYD_hostfile_parse(info_val, &pg->node_list, */
+            /*                                  HYDU_process_mfile_token); */
+            /*     HYDU_ERR_POP(status, "error parsing hostfile\n"); */
+            /* } */
+            else {
+                /* Unrecognized info key; ignore */
+            }
+        }
+
+        val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                             segment_list[j].token_count, "execname");
+        HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                            "unable to find token: execname\n");
+        if (path == NULL)
+            execname = MPL_strdup(val);
+        else {
+            HYD_STRING_STASH_INIT(stash);
+            HYD_STRING_STASH(stash, MPL_strdup(path), status);
+            HYD_STRING_STASH(stash, MPL_strdup("/"), status);
+            HYD_STRING_STASH(stash, MPL_strdup(val), status);
+
+            HYD_STRING_SPIT(stash, execname, status);
+        }
+
+        i = 0;
+        exec->exec[i++] = execname;
+        for (k = 0; k < argcnt; k++) {
+            MPL_snprintf(key, PMI_MAXKEYLEN, "arg%d", k + 1);
+            val = HYD_pmcd_pmi_find_token_keyval(&tokens[segment_list[j].start_idx],
+                                                 segment_list[j].token_count, key);
+            HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                                "unable to find token: %s\n", key);
+            exec->exec[i++] = MPL_strdup(val);
+        }
+        exec->exec[i++] = NULL;
+
+         exec->proc_count = nprocs; 
+
+/*         /\* It is not clear what kind of environment needs to get */
+/*          * passed to the spawned process. Don't set anything here, and */
+/*          * let the proxy do whatever it does by default. *\/ */
+/*         exec->env_prop = NULL; */
+
+        // How does MPICH operate on its env variables natively?
+         status = HYD_env_append_to_list("PMI_SPAWNED", "1", &mpiexec_params.primary.list);
+        HYD_ERR_POP(status, "unable to create PMI_SPAWNED environment\n");
+        // Should push_env_downstream after setting it locally
+        //exec->user_env = env;
+        push_env_downstream(pg);
+     } 
+
+    pg->total_proc_count = 0;
+    for (exec = exec_list; exec; exec = exec->next)
+        pg->total_proc_count += exec->proc_count;
+
+    /* Get the common keys and deal with them */
+    val = HYD_pmcd_pmi_find_token_keyval(tokens, token_count, "preput_num");
+    if (val)
+        preput_num = atoi(val);
+    else
+        preput_num = 0;
+
+     for (i = 0; i < preput_num; i++) { 
+        char *preput_key, *preput_val;
+
+        MPL_snprintf(key, PMI_MAXKEYLEN, "preput_key_%d", i);
+        val = HYD_pmcd_pmi_find_token_keyval(tokens, token_count, key);
+        HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                            "unable to find token: %s\n", key);
+        preput_key = val;
+
+        MPL_snprintf(key, PMI_MAXKEYLEN, "preput_val_%d", i);
+        val = HYD_pmcd_pmi_find_token_keyval(tokens, token_count, key);
+        HYD_ERR_CHKANDJUMP(status, val == NULL, HYD_ERR_INTERNAL,
+                            "unable to find token: %s\n", key);
+        preput_val = val;
+
+        HYD_PRINT(stdout, "fill it to pg.downstream.kvcache of size %d\n", pg->downstream.kvcache_size);
+        // FIXME: What is our way to insert items to descendant KVS cache? 
+        /*        status = HYD_pmcd_pmi_add_kvs(preput_key, preput_val, pg->downstream.kvcache, &ret);
+
+         HYD_ERR_POP(status, "unable to add keypair to kvs\n"); */
+     } 
+
+     /* Create the proxy list */
+     if (pg->node_list) {
+         HYD_PRINT(stdout, "Yes, pg node list\n");
+/*         status = HYDU_create_proxy_list(exec_list, pg->user_node_list, pg); */
+/*         HYDU_ERR_POP(status, "error creating proxy list\n"); */
+     } 
+     else {
+         HYD_PRINT(stdout, "No pg node list\n");
+/*         status = HYDU_create_proxy_list(exec_list, HYD_server_info.node_list, pg); */
+/*         HYDU_ERR_POP(status, "error creating proxy list\n"); */
+     } 
+
+
+     if (pg->node_list) { 
+/*         pg->pg_core_count = 0; */
+/*         for (i = 0, node = pg->user_node_list; node; node = node->next, i++) */
+/*             pg->pg_core_count += node->core_count; */
+     } 
+     else { 
+/*         pg->pg_core_count = 0; */
+/*         for (proxy = pg->proxy_list; proxy; proxy = proxy->next) */
+/*             pg->pg_core_count += proxy->node->core_count; */
+     } 
+
+/*    status = HYDU_sock_create_and_listen_portstr(HYD_server_info.user_global.iface,
+                                                 HYD_server_info.localhost,
+                                                 HYD_server_info.port_range, &control_port,
+                                                 HYD_pmcd_pmiserv_control_listen_cb,
+                                                 (void *) (size_t) new_pgid);
+    HYD_ERR_POP(status, "unable to create PMI port\n");
+    if (HYD_server_info.user_global.debug)
+    HYD_PRINT(stdout, "Got a control port string of %s\n", control_port);*/
+
+     /* Go to the last PG */
+     /* already doing it behind the scenes */
+     /*    for (pg = &HYD_server_info.pg_list; pg->next; pg = pg->next); */
+
+     /*    status = HYD_pmcd_pmi_fill_in_proxy_args(&proxy_stash, control_port, new_pgid);
+    HYD_ERR_POP(status, "unable to fill in proxy arguments\n");
+    HYD_FREE(control_port);
+
+    status = HYD_pmcd_pmi_fill_in_exec_launch_info(pg);
+    HYDU_ERR_POP(status, "unable to fill in executable arguments\n");*/
+
+    /*    status = HYDT_bsci_launch_procs(proxy_stash.strlist, pg->proxy_list, HYD_FALSE, NULL);
+
+    HYD_ERR_POP(status, "launcher cannot launch processes\n");*/
+
+    {
+        char *cmd;
+
+        HYD_STRING_STASH_INIT(stash);
+        HYD_STRING_STASH(stash, MPL_strdup("cmd=spawn_result rc=0"), status);
+        HYD_STRING_STASH(stash, MPL_strdup("\n"), status);
+
+        HYD_STRING_SPIT(stash, cmd, status);
+
+
+        status = cmd_response(fd, cmd);
+
+        HYD_ERR_POP(status, "error writing PMI line\n");
+        MPL_free(cmd);
+    }
+
+/*     /\* Cache the pre-initialized keyvals on the new proxies *\/ */
+/*     if (preput_num) */
+/*         bcast_keyvals(fd, pid); */
+
+  fn_exit:
+    /* HYD_pmcd_pmi_free_tokens(tokens, token_count); */
+    /* HYD_STRING_STASH_FREE(proxy_stash); */
+    /* if (segment_list) */
+    /*     HYDU_FREE(segment_list); */
+
+    return status;
+
+  fn_fail:
+    goto fn_exit;
+}
+
+
 static HYD_status control_cb(int fd, HYD_dmx_event_t events, void *userp)
 {
     struct MPX_cmd cmd;
@@ -650,6 +1062,42 @@ static HYD_status control_cb(int fd, HYD_dmx_event_t events, void *userp)
 
         memcpy(exitcodes[cmd.u.exitcodes.proxy_id], contig_data, cmd.data_len / 2);
         memcpy(exitcode_node_ids[cmd.u.exitcodes.proxy_id], &contig_data[n_proxy_exitcodes[cmd.u.exitcodes.proxy_id]], cmd.data_len / 2);
+    }
+    else if (cmd.type == MPX_CMD_TYPE__PMI_SPAWN){
+        HYD_MALLOC(buf, char *, cmd.data_len, status);
+        status =
+            HYD_sock_read(fd, buf, cmd.data_len, &recvd, &closed, HYD_SOCK_COMM_TYPE__BLOCKING);
+        HYD_ERR_POP(status, "error reading data\n");
+        HYD_ASSERT(!closed, status);
+
+        HYD_PRINT(stdout, "mpiexec got %s\n", buf);
+
+        int mcmd_num_args = 0;
+        char *ip = buf, *nip = buf;
+        for(; nip; ++mcmd_num_args){
+            nip = strchr(ip, '\n');
+            if(nip)
+                ip = nip + 1;
+        }
+
+        char **mcmd_args;
+        HYD_MALLOC(mcmd_args, char **, (mcmd_num_args + 1) * sizeof(char*), status);
+        int i;
+        for (i = 0, ip = buf; i < mcmd_num_args; ++i){
+            nip = strchr(ip, '\n');
+            if(nip){
+                *nip = '\0';
+                HYD_PRINT(stdout, "token: %s\n", ip);
+                mcmd_args[i] = MPL_strdup(ip);
+                ip = nip + 1;
+            }
+        }
+        mcmd_args[mcmd_num_args - 1] = NULL;
+        HYD_PRINT(stdout, "Saving %d lines\n", mcmd_num_args);
+
+        struct HYD_pmcd_token *tokens;
+        int token_count;
+        fn_spawn(fd, 0, mcmd_args, mcmd_num_args);
     }
     else {
         HYD_ERR_SETANDJUMP(status, HYD_ERR_INTERNAL, "received unknown cmd %d\n", cmd.type);
